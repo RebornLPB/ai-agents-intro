@@ -19,7 +19,7 @@ async def run_explainer(topic: str):
     async for event in runner.run_async(user_id="user", session_id=session.id, new_message=message):
         if event.is_final_response() and event.content and event.content.parts:
             text = event.content.parts[0].text
-    print(text)
+            print(text)
 
     result = validate_required_sections(text)
     if not result["is_valid"]:
