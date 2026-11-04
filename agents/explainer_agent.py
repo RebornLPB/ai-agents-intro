@@ -10,13 +10,13 @@ model_name = os.getenv("MODEL_NAME", "ollama_chat/llama3.1:8b")
 explainer_agent = Agent(
     name="explainer_agent",
     model=LiteLlm(model=model_name),
-    instructions="""
+    instruction="""
     You are an expert technical instructor, your goal is to explain programming
     clearly to students.
 
     You MUST format your response in Markdown with the following structure:
 
-    ##Short Explanation
+    ## Short Explanation
     A clear and simple explanation (2 to 4 sentences max)
 
     ### Key Concepts
