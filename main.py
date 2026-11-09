@@ -4,6 +4,7 @@ from google.adk.runners import InMemoryRunner
 from google.genai import types
 from agents.explainer_agent import explainer_agent
 from agents.practice_designer_agent import practice_designer_agent
+from agents.reviewer_agent import reviewer_agent
 from tools.file_writer import save_markdown_file
 from tools.validation import validate_required_sections
 
@@ -40,6 +41,22 @@ async def run_explainer(topic: str):
         if event.is_final_response() and event.content and event.content.parts:
             practice = event.content.parts[0].text
             print(practice)
+
+    # --- Reviewer ---
+    print(f"Reviewing guide for: {topic}")
+    draft = text + "\n\n" + practice
+    review_runner = InMemoryRunner(agent=reviewer_agent, app_name="reviewer")
+    review_session = await review_runner.session_service.create_session(app_name="reviewer", user_id="user")
+    review_message = types.Content(
+        role="user",
+        parts=[types.Part(text=f"Review this draft study guide:\n\n{draft}")],
+    )
+    review = ""
+    async for event in review_runner.run_async(user_id="user", session_id=review_session.id, new_message=review_message):
+        if event.is_final_response() and event.content and event.content.parts:
+            review = event.content.parts[0].text
+            print(review)
+
 
     file_name = topic.lower().replace(" ", "_")
     print(save_markdown_file(f"output/{file_name}.md", text + "\n\n" + practice))
