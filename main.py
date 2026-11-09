@@ -7,6 +7,7 @@ from agents.practice_designer_agent import practice_designer_agent
 from agents.reviewer_agent import reviewer_agent
 from tools.file_writer import save_markdown_file
 from tools.validation import validate_required_sections
+from tools.checks import check_environment
 
 
 async def run_agent(agent, prompt: str) -> str:
@@ -36,6 +37,8 @@ def assemble_final_markdown(draft: str, review: str) -> str:
 
 
 async def run_study_guide(topic: str):
+    if not topic.strip():
+        raise ValueError("Topic cannot be empty.")
     print(f"Topic: {topic}")
 
     print("1/4 Explaining...")
@@ -66,6 +69,7 @@ async def run_study_guide(topic: str):
 
 
 async def main():
+    check_environment()
     if len(sys.argv) > 1:
         await run_study_guide(" ".join(sys.argv[1:]))
     else:
