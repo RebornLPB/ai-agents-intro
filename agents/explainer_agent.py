@@ -3,10 +3,16 @@ from dotenv import load_dotenv
 from google.adk.agents import Agent
 from google.adk.models.lite_llm import LiteLlm
 
-from tools.validation import REQUIRED_SECTIONS
+EXPLAINER_SECTIONS = [
+    "Simple Explanation",
+    "Key Concepts",
+    "Example",
+    "Common Mistakes",
+    "Final Summary",
+]
 
 sections = ""
-for s in REQUIRED_SECTIONS:
+for s in EXPLAINER_SECTIONS:
     sections = sections + "## " + s + "\n"
 
 load_dotenv()
@@ -20,9 +26,10 @@ instruction = (
     "in this order:\n\n"
     + sections
     + "\nWrite 1 to 3 short sentences or bullet points under each heading. "
-    "For Practice Exercise, give one small exercise. "
     "For Common Mistakes, list 2 or 3 mistakes beginners make.\n"
     "Output only these sections, nothing else."
+    "\nDo not write any exercise."
+    "\nYou MUST write all 5 sections, including Final Summary, which is the last one."
 )
 
 explainer_agent = Agent(

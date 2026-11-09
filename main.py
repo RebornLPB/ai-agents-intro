@@ -8,62 +8,70 @@ from agents.reviewer_agent import reviewer_agent
 from tools.file_writer import save_markdown_file
 from tools.validation import validate_required_sections
 
-async def run_explainer(topic: str):
-    print(f"Explaining Topic: {topic}")
-    prompt = f"Explain the following topic: {topic}"
-    runner = InMemoryRunner(agent=explainer_agent, app_name="explainer")
-    session = await runner.session_service.create_session(app_name="explainer", user_id="user")
+
+async def run_agent(agent, prompt: str) -> str:
+    runner = InMemoryRunner(agent=agent, app_name="study_guide")
+    session = await runner.session_service.create_session(app_name="study_guide", user_id="user")
     message = types.Content(
         role="user",
         parts=[types.Part(text=prompt)],
     )
-    text= ""
+    text = ""
     async for event in runner.run_async(user_id="user", session_id=session.id, new_message=message):
         if event.is_final_response() and event.content and event.content.parts:
             text = event.content.parts[0].text
-            print(text)
+    return text
 
-    result = validate_required_sections(text)
-    if not result["is_valid"]:
+
+def assemble_markdown(topic: str, explanation: str, practice: str) -> str:
+    return (
+        f"# Topic\n\n{topic}\n\n"
+        f"{explanation}\n\n"
+        f"## Practice Exercise\n\n{practice}"
+    )
+
+
+def assemble_final_markdown(draft: str, review: str) -> str:
+    return f"{draft}\n\n## Review Comments\n\n{review}"
+
+
+async def run_study_guide(topic: str):
+    print(f"Topic: {topic}")
+
+    print("1/4 Explaining...")
+    explanation = await run_agent(explainer_agent, f"Explain the following topic: {topic}")
+
+    print("2/4 Designing practice...")
+    practice = await run_agent(
+        practice_designer_agent,
+        f"Topic: {topic}\n\nExplanation:\n{explanation}",
+    )
+
+    draft = assemble_markdown(topic, explanation, practice)
+
+    print("3/4 Reviewing...")
+    review = await run_agent(reviewer_agent, f"Review this draft study guide:\n\n{draft}")
+
+    final_markdown = assemble_final_markdown(draft, review)
+
+    print("4/4 Validating and saving...")
+    result = validate_required_sections(final_markdown)
+    if result["is_valid"]:
+        print("Validation OK")
+    else:
         print(f"Warning: missing sections: {result['missing_sections']}")
 
-    # --- Practice Designer ---
-    print(f"Designing practice for: {topic}")
-    practice_prompt = f"Topic: {topic}\n\nExplanation:\n{text}"
-    practice_runner = InMemoryRunner(agent=practice_designer_agent, app_name="practice_designer")
-    practice_session = await practice_runner.session_service.create_session(app_name="practice_designer", user_id="user")
-    practice_message = types.Content(
-        role="user",
-        parts=[types.Part(text=practice_prompt)],
-    )
-    practice = ""
-    async for event in practice_runner.run_async(user_id="user", session_id=practice_session.id, new_message=practice_message):
-        if event.is_final_response() and event.content and event.content.parts:
-            practice = event.content.parts[0].text
-            print(practice)
-
-    # --- Reviewer ---
-    print(f"Reviewing guide for: {topic}")
-    draft = text + "\n\n" + practice
-    review_runner = InMemoryRunner(agent=reviewer_agent, app_name="reviewer")
-    review_session = await review_runner.session_service.create_session(app_name="reviewer", user_id="user")
-    review_message = types.Content(
-        role="user",
-        parts=[types.Part(text=f"Review this draft study guide:\n\n{draft}")],
-    )
-    review = ""
-    async for event in review_runner.run_async(user_id="user", session_id=review_session.id, new_message=review_message):
-        if event.is_final_response() and event.content and event.content.parts:
-            review = event.content.parts[0].text
-            print(review)
-
-
     file_name = topic.lower().replace(" ", "_")
-    print(save_markdown_file(f"output/{file_name}.md", text + "\n\n" + practice))
+    print(save_markdown_file(f"output/{file_name}.md", final_markdown))
+
+
+async def main():
+    if len(sys.argv) > 1:
+        await run_study_guide(" ".join(sys.argv[1:]))
+    else:
+        await run_study_guide("Python decorators")
+        await run_study_guide("HTTP status codes")
+
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        asyncio.run(run_explainer(" ".join(sys.argv[1:])))
-    else:
-        asyncio.run(run_explainer("Python decorators"))
-        asyncio.run(run_explainer("HTTP status codes"))
+    asyncio.run(main())

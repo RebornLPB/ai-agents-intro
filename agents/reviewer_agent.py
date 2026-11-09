@@ -23,5 +23,7 @@ reviewer_agent = Agent(
     ### Suggestions
     ### Recommendation
     (Approved or Needs revision, with a short reason)
+    If you listed any missing or unclear parts, the recommendation must be "Needs revision".
+    Use "Approved" only if both lists are "None".
     """,
 )
