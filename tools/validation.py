@@ -1,6 +1,6 @@
 import re
 
-required_sections = [
+REQUIRED_SECTIONS = [
     "Topic",
     "Simple Explanation",
     "Key Concepts",
@@ -19,7 +19,7 @@ def validate_required_sections(markdown: str) -> dict:
             headings.append(line.lstrip("#").strip().lower())
 
     missing = []
-    for section in required_sections:
+    for section in REQUIRED_SECTIONS:
         if section.lower() not in headings:
             missing.append(section)
 
